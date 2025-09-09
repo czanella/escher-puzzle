@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type PuzzlePieceJson = {
   image: string;
@@ -17,21 +17,18 @@ type PuzzlePiece = {
 export type Puzzle = Record<number, PuzzlePiece>;
 
 
-export const usePuzzle = (puzzleId: string) => {
+export function usePuzzle(puzzleId: string) {
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
-  const [loaded, setLoaded] = useState<boolean[]>([]);
-
-  const loadedCount = useMemo<[number, number]>(() => [
-    loaded.filter(x => x).length,
-    loaded.length,
-  ], [loaded]);
+  const [loaded, setLoaded] = useState(0);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetch(`/puzzles/${puzzleId}/pieces.json`)
       .then(r => r.json())
       .then((pieces: PuzzleJson) => {
         const result: Puzzle = {};
-        setLoaded(Array.from({ length: Object.keys(pieces).length }).map(() => false));
+        setLoaded(0);
+        setTotal(Object.keys(pieces).length);
         for (const [key, pieceData] of Object.entries(pieces)) {
           const pieceKey = parseInt(key);
           const newPiece: PuzzlePiece = {
@@ -41,7 +38,7 @@ export const usePuzzle = (puzzleId: string) => {
           };
           newPiece.image.src = `/puzzles/${puzzleId}/${pieceData.image}`;
           newPiece.image.decode().then(() => {
-            setLoaded(loaded => loaded.map((x, i) => i === pieceKey - 1 ? true : x));
+            setLoaded(loaded => loaded + 1);
           });
           result[pieceKey] = newPiece;
         }
@@ -50,5 +47,5 @@ export const usePuzzle = (puzzleId: string) => {
       })
   }, [puzzleId]);
 
-  return [...loadedCount, puzzle] as const;
+  return [loaded, total, puzzle] as const;
 }

@@ -29,6 +29,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+canvas {
+  display: block;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;

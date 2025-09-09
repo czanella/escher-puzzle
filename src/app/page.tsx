@@ -1,9 +1,10 @@
 'use client';
+import { PuzzleTable } from "@/components/PuzzleTable";
 import { usePuzzle } from "@/hooks/usePuzzle";
 import styles from "./home.module.css";
 
 export default function Home() {
-  const [loadedPieces, totalPieces] = usePuzzle('mosaic2');
+  const [loadedPieces, totalPieces, puzzle] = usePuzzle('mosaic2');
 
   const message = totalPieces === 0
     ? 'Loading...'
@@ -13,7 +14,7 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      Heyyyy! {message}
+      {loadedPieces === totalPieces && puzzle ? <PuzzleTable puzzle={puzzle} /> : `Heyyy! ${message}`}
     </div>
   );
 }
