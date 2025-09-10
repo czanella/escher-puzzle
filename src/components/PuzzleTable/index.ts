@@ -1,1 +1,0 @@
-export { PuzzleTable } from './PuzzleTable';

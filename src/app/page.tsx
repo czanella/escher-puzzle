@@ -1,5 +1,5 @@
 'use client';
-import { PuzzleTable } from "@/components/PuzzleTable";
+import { PuzzleTable } from "@/components/puzzle-table";
 import { usePuzzle } from "@/hooks/usePuzzle";
 import styles from "./home.module.css";
 
