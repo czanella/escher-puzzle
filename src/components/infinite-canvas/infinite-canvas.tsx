@@ -16,65 +16,85 @@ type InfiniteCanvasProps = {
   draw: DrawFunction;
   width: number;
   height: number;
+  x?: number;
+  y?: number;
+  scale?: number;
 } & React.ComponentPropsWithoutRef<'canvas'>;
 
-export function InfiniteCanvas({ width, height, draw, ...props }: InfiniteCanvasProps) {
+export function InfiniteCanvas({
+  width,
+  height,
+  draw,
+  x,
+  y,
+  scale,
+  ...props
+}: InfiniteCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Holds the state of the canvas on the moment that the user starts an interaction
   const [anchorX, setAnchorX] = useState<number>();
   const [anchorY, setAnchorY] = useState<number>();
-  const [anchor, setAnchor] = useState<DOMMatrix>();
+  const [anchorTransform, setAnchorTransform] = useState<DOMMatrix>();
 
-  const setPositionAndScale = useCallback((x: number = 0, y: number = 0, scale: number = 1) => {
-    const minX = -x;
-    const minY = -y;
-    const maxX = minX + scale*width;
-    const maxY = minY + scale*height;
+  // The main function. Sets position and scale of the infinite canvas and redraws it
+  const setPositionAndScale = useCallback((newX: number = 0, newY: number = 0, newScale: number = 1) => {
+    const minX = -newX;
+    const minY = -newY;
+    const maxX = minX + newScale*width;
+    const maxY = minY + newScale*height;
 
     const context = canvasRef.current!.getContext('2d')!;
     context.resetTransform();
     context.clearRect(0, 0, width, height);
-    context.setTransform(scale, 0, 0, scale, x, y);
+    context.setTransform(newScale, 0, 0, newScale, newX, newY);
     draw({ minX, minY, maxX, maxY, context });
   }, [draw, height, width]);
 
+  // Redraws the canvas if the client is controlling it from the outside
+  // Also ensures the initial draw
   useEffect(() => {
-    setPositionAndScale();
-  }, [setPositionAndScale]);
+    setPositionAndScale(x, y, scale);
+  }, [scale, setPositionAndScale, x, y]);
 
-  useEffect(() => {
-    if (anchor === undefined || anchorX === undefined || anchorY === undefined) {
-      return;
-    }
-
-    const onMove = (ev: MouseEvent) => {
-      const { a: scale, e: x, f: y } = anchor;
-      setPositionAndScale(
-        (ev.clientX - anchorX + x),
-        (ev.clientY - anchorY + y),
-        scale,
-      );
-    }
-
-    window.addEventListener('mousemove', onMove);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-    };
-  }, [anchor, anchorX, anchorY, setPositionAndScale]);
-
-  const onMouseDragStart = useCallback(
+  // Callbacks to start and stop a drag using the mouse
+  const startDrag = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
       setAnchorX(e.clientX);
       setAnchorY(e.clientY);
-      setAnchor(canvasRef.current!.getContext('2d')!.getTransform());
+      setAnchorTransform(canvasRef.current!.getContext('2d')!.getTransform());
     },
     [],
   );
 
-  const onMouseDragStop = useCallback(() => {
+  const stopDrag = useCallback(() => {
     setAnchorX(undefined);
     setAnchorY(undefined);
-    setAnchor(undefined);
+    setAnchorTransform(undefined);
   }, []);
+
+  // Handles the listener for when the user drags the content
+  useEffect(() => {
+    if (anchorTransform === undefined || anchorX === undefined || anchorY === undefined) {
+      return;
+    }
+
+    const onMove = (ev: MouseEvent) => {
+      setPositionAndScale(
+        (ev.clientX - anchorX + anchorTransform.e),
+        (ev.clientY - anchorY + anchorTransform.f),
+        anchorTransform.a,
+      );
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', stopDrag);
+
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', stopDrag);
+    };
+  }, [anchorTransform, anchorX, anchorY, setPositionAndScale, stopDrag]);
 
   const onTouchDragStart = useCallback(
     (e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -89,9 +109,7 @@ export function InfiniteCanvas({ width, height, draw, ...props }: InfiniteCanvas
       ref={canvasRef}
       width={width}
       height={height}
-      onMouseDown={onMouseDragStart}
-      onMouseUp={onMouseDragStop}
-      onMouseLeave={onMouseDragStop}
+      onMouseDown={startDrag}
       onTouchStart={onTouchDragStart}
     />
   );
