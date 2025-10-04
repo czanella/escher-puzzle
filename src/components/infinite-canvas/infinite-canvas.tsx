@@ -19,6 +19,7 @@ type InfiniteCanvasProps = {
   x?: number;
   y?: number;
   scale?: number;
+  wheelSpeed?: number;
 } & React.ComponentPropsWithoutRef<'canvas'>;
 
 export function InfiniteCanvas({
@@ -28,6 +29,7 @@ export function InfiniteCanvas({
   x,
   y,
   scale,
+  wheelSpeed = 1.05,
   ...props
 }: InfiniteCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -96,12 +98,29 @@ export function InfiniteCanvas({
     };
   }, [anchorTransform, anchorX, anchorY, setPositionAndScale, stopDrag]);
 
-  const onTouchDragStart = useCallback(
-    (e: React.TouchEvent<HTMLCanvasElement>) => {
-      console.log('Yay!', e);
-    },
-    [],
-  );
+  // Handles the mouse wheel event that changes scale
+  const onWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
+    if (e.deltaY === 0) {
+      return;
+    }
+
+    const context = canvasRef.current!.getContext('2d')!;
+    const transform = context.getTransform();
+    const oldScale = transform.a;
+    const oldX = transform.e;
+    const oldY = transform.f;
+    const newScale = e.deltaY > 0 ? oldScale * wheelSpeed : oldScale / wheelSpeed;
+
+    const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+    const wheelX = (e.clientX - rect.left) * (width / rect.width);
+    const wheelY = (e.clientY - rect.top) * (height / rect.height);
+
+    const newX = oldX + (wheelX - oldX) * (1 - newScale / oldScale);
+    const newY = oldY + (wheelY - oldY) * (1 - newScale / oldScale);
+
+    setPositionAndScale(newX, newY, newScale);
+
+  }, [height, setPositionAndScale, wheelSpeed, width]);
 
   return (
     <canvas
@@ -110,7 +129,7 @@ export function InfiniteCanvas({
       width={width}
       height={height}
       onMouseDown={startDrag}
-      onTouchStart={onTouchDragStart}
+      onWheel={onWheel}
     />
   );
 }
