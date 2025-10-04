@@ -54,6 +54,8 @@ export const LeaderboardGameTitle:Story = {
   args: {
     width: 550,
     height: 400,
-    draw: drawMapping['Single Photo'],
+    scale: 1,
+    // @ts-expect-error here, 'draw' represents the ID of the function, not the function itself
+    draw: "Single Photo",
   },
 };
