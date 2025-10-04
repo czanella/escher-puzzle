@@ -41,10 +41,10 @@ export function InfiniteCanvas({
 
   // The main function. Sets position and scale of the infinite canvas and redraws it
   const setPositionAndScale = useCallback((newX: number = 0, newY: number = 0, newScale: number = 1) => {
-    const minX = -newX;
-    const minY = -newY;
-    const maxX = minX + newScale*width;
-    const maxY = minY + newScale*height;
+    const minX = -newX/newScale;
+    const minY = -newY/newScale;
+    const maxX = minX + width/newScale;
+    const maxY = minY + height/newScale;
 
     const context = canvasRef.current!.getContext('2d')!;
     context.resetTransform();
